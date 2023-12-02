@@ -18,10 +18,16 @@ sent_buffer = []
 value_of_n = 0
 dropped_buffer = []
 drop_option = ""
+receiver_discarded = 0
+receiver_total = 0
+sender_discarded = 0
+sender_total = 0
 
 def node_receiver(node_socket):
      #listen for incoming packets
      while(True):
+          global receiver_total
+          global receiver_discarded
           #handle packet
           packet = node_socket.recvfrom(65535)
           packet = json.loads(packet[0].decode())
@@ -38,26 +44,29 @@ def node_receiver(node_socket):
             #if we a deterministically dropping pkts
             if drop_option=="-d" and value_of_n != 0 and pkt_num%value_of_n==value_of_n-1:
                  print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+                 receiver_total+=1
+                 receiver_discarded+=1
             else:
                 #check to see if it is the terminator char
                if data!='\0':
                     print(f"[{timestamp}] packet{pkt_num} {data} received")
+                    receiver_total+=1
                     #check if pkt is received in correct order
                     if recv_base==pkt_num:
                          #send new ack
-                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False))
+                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False,False))
                          ack_thread.start()
                     else:
                          #retransmit old ack
-                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,True))
+                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,True,False))
                          ack_thread.start()
                else:
                     #terminator
                     #add logic to calculate summary
-                    print("[Summary] <> packets dropped, loss rate = <>%")
+                    print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}%")
 
                     #send terminator ack to sender
-                    ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,-1,False))
+                    ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False,True))
                     ack_thread.start()
 
                     #exit program gracefully
@@ -67,34 +76,40 @@ def node_receiver(node_socket):
           #else ack
           else:
                global send_base
-               #check if terminator ack
-               if data == '\0':
-                    #add logic to calculate summary
-                    print("[Summary] <> packets discarded, loss rate = <>%")
-                    print("Exiting...")
-                    os._exit(0)
-               else:
-                    #check if duplicate ack, don't move window
-                    if pkt_num<send_base:
-                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
-
-                         #duplicate
-                         timestamp = get_timestamp()
-                         print(f"[{timestamp}] ACK{pkt_num} discarded")
-                    #not duplicate move window
-                    else:
-                         send_base+=1
-                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
-
+               global sender_total
+               global sender_discarded
+               #check if we need to deterministically drop the ack
+               if drop_option=="-d" and value_of_n != 0 and pkt_num%value_of_n==value_of_n-1:
+                    print(f"[{timestamp}] ACK{pkt_num} discarded")
+                    sender_total+=1
+                    sender_discarded+=1
                     #check to see if we can send another packet
                     sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
                     sender_thread.start()
+               else:
+                    #check if terminator ack
+                    if data == '\0':
+                         #add logic to calculate summary
+                         print(f"[Summary] {sender_discarded}/{sender_total} packets discarded, loss rate = {sender_discarded/sender_total}%")
+                         print("Exiting...")
+                         os._exit(0)
+                    else:
+                         #check if duplicate ack, don't move window
+                         if not pkt_num<send_base:
+                              #cumulative ack
+                              send_base=pkt_num+1
 
-def node_ack_sender(node_socket,pkt_num,out_of_order):
+                         sender_total+=1
+                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
+                         #check to see if we can send another packet
+                         sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
+                         sender_thread.start()
+
+def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
      timestamp = get_timestamp()
      
      #termination
-     if pkt_num==-1:
+     if is_termintor:
            #form the packet, is an ACK
                seq = create_32_bit_seq_num(True,pkt_num)
                data = '\0'
@@ -112,7 +127,7 @@ def node_ack_sender(node_socket,pkt_num,out_of_order):
                packet = [seq,data]
                #send ACK
                node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-               print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{recv_base}")   
+               print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{pkt_num+1}")   
           else:
                #form packet
                seq = create_32_bit_seq_num(True,recv_base-1)
@@ -125,6 +140,7 @@ def node_ack_sender(node_socket,pkt_num,out_of_order):
      
 def node_sender(node_socket,message):
      global send_base
+     global sent_buffer
      
      #add each char to buffer
      for x in message:
