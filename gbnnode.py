@@ -39,57 +39,88 @@ def node_receiver(node_socket):
             if drop_option=="-d" and value_of_n != 0 and pkt_num%value_of_n==value_of_n-1:
                  print(f"[{timestamp}] packet{pkt_num} {data} discarded")
             else:
-                print(f"[{timestamp}] packet{pkt_num} {data} received")
-                #check if pkt is received in correct order
-                if recv_base==pkt_num:
-                    #send new ack
-                    ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False))
+                #check to see if it is the terminator char
+               if data!='\0':
+                    print(f"[{timestamp}] packet{pkt_num} {data} received")
+                    #check if pkt is received in correct order
+                    if recv_base==pkt_num:
+                         #send new ack
+                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False))
+                         ack_thread.start()
+                    else:
+                         #retransmit old ack
+                         ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,True))
+                         ack_thread.start()
+               else:
+                    #terminator
+                    #add logic to calculate summary
+                    print("[Summary] <> packets dropped, loss rate = <>%")
+
+                    #send terminator ack to sender
+                    ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,-1,False))
                     ack_thread.start()
-                else:
-                     #retransmit old ack
-                     ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,True))
-                     ack_thread.start()
+
+                    #exit program gracefully
+                    print("Exiting...")
+                    os._exit(0)
 
           #else ack
           else:
                global send_base
-               #check if duplicate ack, don't move window
-               if pkt_num<send_base:
-                    print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
-
-                    #duplicate
-                    timestamp = get_timestamp()
-                    print(f"[{timestamp}] ACK{pkt_num} discarded")
-               #not duplicate move window
+               #check if terminator ack
+               if data == '\0':
+                    #add logic to calculate summary
+                    print("[Summary] <> packets discarded, loss rate = <>%")
+                    print("Exiting...")
+                    os._exit(0)
                else:
-                send_base+=1
-                print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
+                    #check if duplicate ack, don't move window
+                    if pkt_num<send_base:
+                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
 
-                #check to see if we can send another packet
-                sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
-                sender_thread.start()
+                         #duplicate
+                         timestamp = get_timestamp()
+                         print(f"[{timestamp}] ACK{pkt_num} discarded")
+                    #not duplicate move window
+                    else:
+                         send_base+=1
+                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
+
+                    #check to see if we can send another packet
+                    sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
+                    sender_thread.start()
 
 def node_ack_sender(node_socket,pkt_num,out_of_order):
      timestamp = get_timestamp()
-      #move window if not out_of_order
-     if not out_of_order:
-        global recv_base
-        recv_base+=1
-        #form the packet, is an ACK
-        seq = create_32_bit_seq_num(True,pkt_num)
-        data = ''
-        packet = [seq,data]
-        #send ACK
-        node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-        print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{recv_base}")   
+     
+     #termination
+     if pkt_num==-1:
+           #form the packet, is an ACK
+               seq = create_32_bit_seq_num(True,pkt_num)
+               data = '\0'
+               packet = [seq,data]
+               #send ACK
+               node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port)) 
      else:
-        #form packet
-        seq = create_32_bit_seq_num(True,recv_base-1)
-        data = ''
-        packet = [seq,data]
-        #send ACK
-        node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-        print(f"[{timestamp}] ACK{recv_base-1} sent, expecting packet{recv_base}")  
+          #move window if not out_of_order
+          if not out_of_order:
+               global recv_base
+               recv_base+=1
+               #form the packet, is an ACK
+               seq = create_32_bit_seq_num(True,pkt_num)
+               data = ''
+               packet = [seq,data]
+               #send ACK
+               node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+               print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{recv_base}")   
+          else:
+               #form packet
+               seq = create_32_bit_seq_num(True,recv_base-1)
+               data = ''
+               packet = [seq,data]
+               #send ACK
+               node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+               print(f"[{timestamp}] ACK{recv_base-1} sent, expecting packet{recv_base}")  
 
      
 def node_sender(node_socket,message):
@@ -103,20 +134,28 @@ def node_sender(node_socket,message):
     #  print(f"this is my buffer: {sender_buffer}")
      for pkt_num in range(send_base,window_size+send_base):
           if pkt_num not in sent_buffer and pkt_num<len(sender_buffer):
-       
+
                #form the packet, not an ACK
                seq = create_32_bit_seq_num(False,pkt_num)
                data = sender_buffer[pkt_num]
                packet = [seq,data]
 
-               #send packets to peer
-               timestamp = get_timestamp()
-               node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-               print(f"[{timestamp}] packet{pkt_num} {data} sent")
+               #check if we have reached the terminator char
+               if sender_buffer[pkt_num]=='\0' and send_base==pkt_num:
+                    #send packet to peer
+                    timestamp = get_timestamp()
+                    node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+                    #add sent packet with packet_num to list
+                    sent_buffer.append(pkt_num)
+
+               elif sender_buffer[pkt_num]!='\0':
+                    #send packet to peer
+                    timestamp = get_timestamp()
+                    node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+                    print(f"[{timestamp}] packet{pkt_num} {data} sent")
                
-              
-               #add sent packet with packet_num to list
-               sent_buffer.append(pkt_num)
+                    #add sent packet with packet_num to list
+                    sent_buffer.append(pkt_num)
 
 def create_32_bit_seq_num(ack_flag,seqnum):
      flag_bit = 1 if ack_flag else 0
