@@ -15,6 +15,9 @@ send_base = 0
 recv_base = 0
 window_size = 0
 sent_buffer = []
+value_of_n = 0
+dropped_buffer = []
+drop_option = ""
 
 def node_receiver(node_socket):
      #listen for incoming packets
@@ -32,34 +35,61 @@ def node_receiver(node_socket):
           
           #if message, acknowledge
           if ack_bit==0:
-            print(f"[{timestamp}] packet{pkt_num} {data} received")
-            #send ack
-            ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num))
-            ack_thread.start()
-          #else ack, move window
+            #if we a deterministically dropping pkts
+            if drop_option=="-d" and value_of_n != 0 and pkt_num%value_of_n==value_of_n-1:
+                 print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+            else:
+                print(f"[{timestamp}] packet{pkt_num} {data} received")
+                #check if pkt is received in correct order
+                if recv_base==pkt_num:
+                    #send new ack
+                    ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False))
+                    ack_thread.start()
+                else:
+                     #retransmit old ack
+                     ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,True))
+                     ack_thread.start()
+
+          #else ack
           else:
                global send_base
-               send_base+=1
-               print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
+               #check if duplicate ack, don't move window
+               if pkt_num<send_base:
+                    print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
 
-               #check to see if we can send another packet
-               sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
-               sender_thread.start()
+                    #duplicate
+                    timestamp = get_timestamp()
+                    print(f"[{timestamp}] ACK{pkt_num} discarded")
+               #not duplicate move window
+               else:
+                send_base+=1
+                print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
 
-def node_ack_sender(node_socket,pkt_num):
+                #check to see if we can send another packet
+                sender_thread = threading.Thread(target=node_sender,args=(node_socket,''))
+                sender_thread.start()
+
+def node_ack_sender(node_socket,pkt_num,out_of_order):
      timestamp = get_timestamp()
-     #move window
-     global recv_base
-     recv_base+=1
-
-     #form the packet, is an ACK
-     seq = create_32_bit_seq_num(True,pkt_num)
-     data = ''
-     packet = [seq,data]
-
-     #send ACK
-     node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-     print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{recv_base}")          
+      #move window if not out_of_order
+     if not out_of_order:
+        global recv_base
+        recv_base+=1
+        #form the packet, is an ACK
+        seq = create_32_bit_seq_num(True,pkt_num)
+        data = ''
+        packet = [seq,data]
+        #send ACK
+        node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+        print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{recv_base}")   
+     else:
+        #form packet
+        seq = create_32_bit_seq_num(True,recv_base-1)
+        data = ''
+        packet = [seq,data]
+        #send ACK
+        node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+        print(f"[{timestamp}] ACK{recv_base-1} sent, expecting packet{recv_base}")  
 
      
 def node_sender(node_socket,message):
@@ -132,10 +162,12 @@ def main():
     
     #check option for dropping packets
     if sys.argv[4]=="-d" or sys.argv[4]=="-p":
+        global drop_option
         drop_option = sys.argv[4]
         #make sure n is an int
         if drop_option=='-d':
             try:
+                global value_of_n
                 value_of_n = int(sys.argv[5])
             except: 
                     sys.exit("> [ERROR: value-of-n must be an int]")
@@ -173,8 +205,10 @@ def main():
 
             #check that the message starts with send, else invalid command
             if message.startswith('send '):
+                #add terminator to string
+                message = message.split("send ")[1]+'\0'
                 #create thread to handle sending of message
-                send_thread = threading.Thread(target=node_sender,args=(node_socket,message.split("send ")[1]))
+                send_thread = threading.Thread(target=node_sender,args=(node_socket,message))
                 send_thread.start()
             else:
                  print("[ERROR: Invalid command]")
