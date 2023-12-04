@@ -1,0 +1,10 @@
+for gbnnode
+(1)
+sender:  python gbnnode.py 2222 1111 3 -d 0
+    send abcde
+receiver: gbn_dv-routing % python gbnnode.py 1111 2222 3 -d 3
+
+(2)
+sender: python gbnnode.py 2222 1111 5 -p 0
+    send 1000 char message
+receiver: python gbnnode.py 1111 2222 5 -p .2

@@ -4,6 +4,7 @@ import socket
 import threading
 import json
 import time
+import random
 
 #global variables
 receiver_ip = "0.0.0.0"
@@ -15,6 +16,7 @@ recv_base = 0
 window_size = 0
 sent_buffer = []
 value_of_n = 0
+value_of_p = 0.0
 dropped_buffer = []
 drop_option = ""
 receiver_discarded = 0
@@ -49,6 +51,12 @@ def node_receiver(node_socket):
           if ack_bit==0:
             #if we a deterministically dropping pkts
             if drop_option=="-d" and value_of_n != 0 and receiver_total%value_of_n==value_of_n-1:
+                 print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+                 receiver_total+=1
+                 receiver_discarded+=1
+            #if we drop pkts based on the probability of p
+            #random.random generates a number between [0.0,1.0)
+            elif drop_option=="-p" and random.random() < value_of_p:
                  print(f"[{timestamp}] packet{pkt_num} {data} discarded")
                  receiver_total+=1
                  receiver_discarded+=1
@@ -87,6 +95,12 @@ def node_receiver(node_socket):
                #check if we need to deterministically drop the ack
                if drop_option=="-d" and value_of_n != 0 and sender_total%value_of_n==value_of_n-1:
                     print(f"[{timestamp}] ACK{pkt_num} discarded")
+                    sender_total+=1
+                    sender_discarded+=1
+               #if we drop pkts based on the probability of p
+               #random.random generates a number between [0.0,1.0)
+               elif drop_option=="-p" and random.random() < value_of_p:
+                    print(f"[{timestamp}] packet{pkt_num} {data} discarded")
                     sender_total+=1
                     sender_discarded+=1
                else:
@@ -257,6 +271,7 @@ def main():
         #make sure value of p is between 0 and 1
         else:
              try:
+                   global value_of_p
                    value_of_p = float(sys.argv[5])
              except:
                    sys.exit("> [ERROR: value-of-p must be between 0 and 1]")
