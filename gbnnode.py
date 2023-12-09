@@ -24,6 +24,7 @@ receiver_total = 0
 sender_discarded = 0
 sender_total = 0
 resend_window = False
+end_of_transmission = False
 
 # Set the timeout, don't start yet
 TIMEOUT_INTERVAL = 0.5
@@ -51,19 +52,19 @@ def node_receiver(node_socket):
           if ack_bit==0:
             #if we a deterministically dropping pkts
             if drop_option=="-d" and value_of_n != 0 and receiver_total%value_of_n==value_of_n-1:
-                 print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+                 print(f"[{timestamp}] packet{pkt_num} {repr(data)} discarded")
                  receiver_total+=1
                  receiver_discarded+=1
             #if we drop pkts based on the probability of p
             #random.random generates a number between [0.0,1.0)
             elif drop_option=="-p" and random.random() < value_of_p:
-                 print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+                 print(f"[{timestamp}] packet{pkt_num} {repr(data)} discarded")
                  receiver_total+=1
                  receiver_discarded+=1
             else:
                #make sure it is not the terminator message
                if data!='\0':
-                    print(f"[{timestamp}] packet{pkt_num} {data} received")
+                    print(f"[{timestamp}] packet{pkt_num} {repr(data)} received")
                     receiver_total+=1
                     #check if pkt is received in correct order
                     if recv_base==pkt_num:
@@ -76,16 +77,13 @@ def node_receiver(node_socket):
                          ack_thread.start()
                #terminator
                else:
-                    #add logic to calculate summary
-                    print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}%")
-
+                    print(f"[{timestamp}] packet{pkt_num} {repr(data)} received")
+                    receiver_total+=1
+                   
                     #send terminator ack to sender
                     ack_thread = threading.Thread(target=node_ack_sender,args=(node_socket,pkt_num,False,True))
                     ack_thread.start()
 
-                    #exit program gracefully
-                    print("Exiting...")
-                    os._exit(0)
 
           #else ack
           else:
@@ -100,16 +98,28 @@ def node_receiver(node_socket):
                #if we drop pkts based on the probability of p
                #random.random generates a number between [0.0,1.0)
                elif drop_option=="-p" and random.random() < value_of_p:
-                    print(f"[{timestamp}] packet{pkt_num} {data} discarded")
+                    print(f"[{timestamp}] ACK{pkt_num} discarded")
                     sender_total+=1
                     sender_discarded+=1
                else:
                     #check if terminator ack
                     if data == '\0':
+                         #stop timer
+                         timer_start_time = 0
+
+                         #ack
+                         send_base=pkt_num+1
+                         print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
+                         sender_total+=1
+
                          #add logic to calculate summary
                          print(f"[Summary] {sender_discarded}/{sender_total} packets discarded, loss rate = {sender_discarded/sender_total}%")
-                         print("Exiting...")
-                         os._exit(0)
+                         
+                         #declare we are at end of transmission, close the thread
+                         global end_of_transmission
+                         end_of_transmission = True
+
+                         #add logic to prep for next send transaction!!!
                     else:
                          #check if duplicate ack, don't move window
                          if not pkt_num<send_base:
@@ -132,6 +142,12 @@ def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
                packet = [seq,data]
                #send ACK
                node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port)) 
+               print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{pkt_num+1}") 
+
+               global receiver_discarded
+               global receiver_total
+               #add logic to calculate summary
+               print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}%")
      else:
           #move window if not out_of_order
           if not out_of_order:
@@ -145,13 +161,15 @@ def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
                node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
                print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{pkt_num+1}")   
           else:
-               #form packet
-               seq = create_32_bit_seq_num(True,recv_base-1)
-               data = ''
-               packet = [seq,data]
-               #send ACK
-               node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-               print(f"[{timestamp}] ACK{recv_base-1} sent, expecting packet{recv_base}")  
+               #make sure that recv_base is not at 0, if it is don't send ACK
+               if recv_base != 0:
+                    #form packet
+                    seq = create_32_bit_seq_num(True,recv_base-1)
+                    data = ''
+                    packet = [seq,data]
+                    #send ACK
+                    node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
+                    print(f"[{timestamp}] ACK{recv_base-1} sent, expecting packet{recv_base}")  
 
      
 def node_sender(node_socket,message):
@@ -159,6 +177,7 @@ def node_sender(node_socket,message):
      global sent_buffer
      global timer_start_time
      global resend_window
+     global end_of_transmission
      
      #add each char to buffer
      for x in message:
@@ -178,22 +197,17 @@ def node_sender(node_socket,message):
                     packet = [seq,data]
 
                     #check if we have reached the terminator char & the rest of the packets have been acked
-                    if sender_buffer[pkt_num]=='\0' and send_base==pkt_num:
-                         #send packet to peer
-                         node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-                         #add sent packet with packet_num to list
-                         sent_buffer.append(pkt_num)
-
-                    elif sender_buffer[pkt_num]!='\0':
+                    #or just a regular packet to send
+                    if (sender_buffer[pkt_num]=='\0' and send_base==pkt_num) or sender_buffer[pkt_num]!='\0':
                          #send packet to peer
                          timestamp = get_timestamp()
                          node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port))
-                         print(f"[{timestamp}] packet{pkt_num} {data} sent")
-
+                         print(f"[{timestamp}] packet{pkt_num} {repr(data)} sent")
+                         
                          # Start the timer if it's not already running
                          if timer_start_time==0:
                               timer_start_time = time.time()
-                         
+
                          #add sent packet with packet_num to list
                          sent_buffer.append(pkt_num)
                     
@@ -214,6 +228,11 @@ def node_sender(node_socket,message):
                #reset timer, if new first pkt in the window has already been sent
                if send_base in sent_buffer:
                     timer_start_time = time.time()
+          
+          #we have successfully reached end of transmision, exit the thread
+          global end_of_transmission
+          if end_of_transmission:
+               break
 
 def create_32_bit_seq_num(ack_flag,seqnum):
      flag_bit = 1 if ack_flag else 0
