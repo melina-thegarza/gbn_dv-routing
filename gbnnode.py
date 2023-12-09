@@ -6,7 +6,7 @@ import json
 import time
 import random
 
-#global variables
+#global variables -> need to differentiate between sender and receiver
 receiver_ip = "0.0.0.0"
 receiver_port = 0
 sender_buffer = []
@@ -14,10 +14,9 @@ next_seq_num = 0
 send_base = 0
 recv_base = 0
 window_size = 0
-sent_buffer = []
+sent_packet_numbers = []
 value_of_n = 0
 value_of_p = 0.0
-dropped_buffer = []
 drop_option = ""
 receiver_discarded = 0
 receiver_total = 0
@@ -25,6 +24,7 @@ sender_discarded = 0
 sender_total = 0
 resend_window = False
 end_of_transmission = False
+receiver_eot_num = -1
 
 # Set the timeout, don't start yet
 TIMEOUT_INTERVAL = 0.5
@@ -34,9 +34,7 @@ timer_start_time = 0
 def node_receiver(node_socket):
      #listen for incoming packets
      while(True):
-          global receiver_total
-          global receiver_discarded
-          global timer_start_time
+          global receiver_total, receiver_discarded, timer_start_time, receiver_eot_num
           #handle packet
           packet = node_socket.recvfrom(65535)
           packet = json.loads(packet[0].decode())
@@ -50,6 +48,12 @@ def node_receiver(node_socket):
           
           #if message, acknowledge
           if ack_bit==0:
+            
+            ##check to see if we should reset loss rate stats, for new transmission 
+            if receiver_eot_num==pkt_num:
+                 receiver_total, receiver_discarded = 0, 0
+                 receiver_eot_num = -1
+            
             #if we a deterministically dropping pkts
             if drop_option=="-d" and value_of_n != 0 and receiver_total%value_of_n==value_of_n-1:
                  print(f"[{timestamp}] packet{pkt_num} {repr(data)} discarded")
@@ -133,10 +137,13 @@ def node_receiver(node_socket):
 
 def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
      timestamp = get_timestamp()
-     
+     global recv_base
+
      #termination
      if is_termintor:
            #form the packet, is an ACK
+               #make sure we expecting the pkt $ after the end of transmission pkt
+               recv_base=pkt_num+1
                seq = create_32_bit_seq_num(True,pkt_num)
                data = '\0'
                packet = [seq,data]
@@ -144,14 +151,16 @@ def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
                node_socket.sendto(str.encode(json.dumps(packet)),(receiver_ip,receiver_port)) 
                print(f"[{timestamp}] ACK{pkt_num} sent, expecting packet{pkt_num+1}") 
 
-               global receiver_discarded
-               global receiver_total
+               global receiver_discarded,receiver_total, receiver_eot_num
                #add logic to calculate summary
                print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}%")
+               
+               #set the EOT pkt_num, so that when we receive the next pkt_num
+               #we know we've entered the next transmission
+               receiver_eot_num = recv_base
      else:
           #move window if not out_of_order
           if not out_of_order:
-               global recv_base
                recv_base+=1
                #form the packet, is an ACK
                seq = create_32_bit_seq_num(True,pkt_num)
@@ -174,7 +183,7 @@ def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
      
 def node_sender(node_socket,message):
      global send_base
-     global sent_buffer
+     global sent_packet_numbers
      global timer_start_time
      global resend_window
      global end_of_transmission
@@ -189,7 +198,7 @@ def node_sender(node_socket,message):
           
           for pkt_num in range(send_base,window_size+send_base):
                #send packets in window that haven't already been sent
-               if (pkt_num not in sent_buffer or resend_window==True) and pkt_num<len(sender_buffer):
+               if (pkt_num not in sent_packet_numbers or resend_window==True) and pkt_num<len(sender_buffer):
 
                     #form the packet, not an ACK
                     seq = create_32_bit_seq_num(False,pkt_num)
@@ -209,7 +218,7 @@ def node_sender(node_socket,message):
                               timer_start_time = time.time()
 
                          #add sent packet with packet_num to list
-                         sent_buffer.append(pkt_num)
+                         sent_packet_numbers.append(pkt_num)
                     
           #while waiting for ACK or timeout:
           while(timer_start_time!=0 and time.time() - timer_start_time < TIMEOUT_INTERVAL):
@@ -226,12 +235,14 @@ def node_sender(node_socket,message):
           else:
                resend_window = False
                #reset timer, if new first pkt in the window has already been sent
-               if send_base in sent_buffer:
+               if send_base in sent_packet_numbers:
                     timer_start_time = time.time()
           
           #we have successfully reached end of transmision, exit the thread
           global end_of_transmission
           if end_of_transmission:
+               #reset for next transmission
+               end_of_transmission = False
                break
 
 def create_32_bit_seq_num(ack_flag,seqnum):
@@ -324,6 +335,9 @@ def main():
             if message.startswith('send '):
                 #add terminator to string
                 message = message.split("send ")[1]+'\0'
+                #reset the sender stats
+                global sender_discarded, sender_total
+                sender_discarded,sender_total = 0,0
                 #create thread to handle sending of message
                 send_thread = threading.Thread(target=node_sender,args=(node_socket,message))
                 send_thread.start()

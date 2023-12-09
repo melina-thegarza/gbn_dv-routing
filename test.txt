@@ -1,11 +1,96 @@
-for gbnnode
-(1)
-sender:  python gbnnode.py 2222 1111 3 -d 0
-    send abcde
-receiver: python gbnnode.py 1111 2222 3 -d 3
+FOR gbnnode
 
-(2) Send 1000 char message, loss rate calculation
+(1) Send normal message, with no failure
+
+sender:  python gbnnode.py 2222 1111 3 -p 0
+node> send abcde  
+node> [1702161463.751] packet0 'a' sent
+[1702161463.752] packet1 'b' sent
+[1702161463.752] packet2 'c' sent
+[1702161463.761] ACK0 received, window moves to 1
+[1702161463.761] ACK1 received, window moves to 2
+[1702161463.761] ACK2 received, window moves to 3
+[1702161463.762] packet3 'd' sent
+[1702161463.762] packet4 'e' sent
+[1702161463.768] ACK3 received, window moves to 4
+[1702161463.780] ACK4 received, window moves to 5
+[1702161463.780] packet5 '\x00' sent
+[1702161463.788] ACK5 received, window moves to 6
+[Summary] 0/6 packets discarded, loss rate = 0.0%
+^C> Exiting...
+
+receiver: python gbnnode.py 1111 2222 3 -p 0
+node> [1702161463.753] packet0 'a' received
+[1702161463.754] ACK0 sent, expecting packet1
+[1702161463.755] packet1 'b' received
+[1702161463.755] ACK1 sent, expecting packet2
+[1702161463.755] packet2 'c' received
+[1702161463.756] ACK2 sent, expecting packet3
+[1702161463.762] packet3 'd' received
+[1702161463.762] packet4 'e' received
+[1702161463.762] ACK3 sent, expecting packet4
+[1702161463.762] ACK4 sent, expecting packet5
+[1702161463.781] packet5 '\x00' received
+[1702161463.781] ACK5 sent, expecting packet6
+[Summary] 0/6 packets dropped, loss rate = 0.0%
+^C> Exiting...
+
+(2) Send multiple messages
+sender: python gbnnode.py 2222 1111 3 -p 0
+node> send hi
+node> [1702163868.690] packet0 'h' sent
+[1702163868.692] packet1 'i' sent
+[1702163868.700] ACK0 received, window moves to 1
+[1702163868.700] ACK1 received, window moves to 2
+[1702163868.700] packet2 '\x00' sent
+[1702163869.200] packet2 timeout
+[1702163869.200] packet2 '\x00' sent
+[1702163869.207] ACK2 received, window moves to 3
+[Summary] 0/3 packets discarded, loss rate = 0.0%
+send hi
+node> [1702163903.119] packet3 'h' sent
+[1702163903.119] packet4 'i' sent
+[1702163903.126] ACK3 received, window moves to 4
+[1702163903.132] ACK4 received, window moves to 5
+[1702163903.132] packet5 '\x00' sent
+[1702163903.138] ACK5 received, window moves to 6
+[Summary] 0/3 packets discarded, loss rate = 0.0%
+^C> Exiting...
+
+receiver: python gbnnode.py 1111 2222 3 -p .25
+node> [1702163868.692] packet0 'h' received
+[1702163868.693] ACK0 sent, expecting packet1
+[1702163868.694] packet1 'i' received
+[1702163868.694] ACK1 sent, expecting packet2
+[1702163868.700] packet2 '\x00' discarded
+[1702163869.201] packet2 '\x00' received
+[1702163869.201] ACK2 sent, expecting packet3
+[Summary] 1/4 packets dropped, loss rate = 0.25%
+[1702163903.120] packet3 'h' received
+[1702163903.120] packet4 'i' received
+[1702163903.120] ACK3 sent, expecting packet4
+[1702163903.121] ACK4 sent, expecting packet5
+[1702163903.132] packet5 '\x00' received
+[1702163903.132] ACK5 sent, expecting packet6
+[Summary] 0/3 packets dropped, loss rate = 0.0%
+^C> Exiting...
+
+
+(3) Send 1000 char message, loss rate calculation
 
 sender: python gbnnode.py 2222 1111 5 -p 0
-    send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZtEVy1yjOGeMtHMK2OxSAMEN9sRPAFtPCIFbmDK6nXxLGtj8uDHGlHD9xiEsXevObR2jhgilQFT68he44I4FWBdHXYMcNrp9YQI9WnPvLQATrTBZgtR0xiM2BSSQ3IDB0eKeGLQOuRcC9FnwhSyHSBU7FSFWfMBzanlllO7rko1jgjI5517CQzwxWIC9ivMyxCxNDE282cO2du5sCXkwIcZoe1rEQkkyqLZyFGRqtpgUPXU2O9u44Jv6RzuysOJCEQcO4vc4RYV3UTA0ZYr1dmpf8FCLk2An3CnFmshlsNnnDx93YiIBoxwHcx89c5UeucCVyMXkr5ZTdLweWchlT0EaphXfMBj7EwXbg39AQ4wRTY9GsHkfz20ocwDBWXAhTBGA0FCEUkhhEKz1XwoEUA61w8l6msyQfEiRswEi2w3iArgFlvu8z0NUeTcpyPZNdqluFxdmcPoL8RlxSmRuPOqqw8pctTdwdUOlQdmYdY1f9cQu5DKWSF99Wp96bFVE9LoyNf7b9ft6xLhirCPhMlD8npSO5erUrWPpfaAvWcn4YIEvxWByXT5TPp0imdE3uBwDncxffnFiRCPamGcY5VqF8JpzOIdRCICIJfFGLtQaEPT8rWZGnTLqmQeswTJ8INsMzAw8HRxOIVsxgUVjjzpok0m852nOPALIzH49SxUdACxmaB1nxbo56aYHQrzwUQvKczJ662xUA6Jb99zUWLjLgSrI1adFh99CmiAFwZlSPCz5jbIsbq61bQIk4mZya4ZCW4hsn4N9vEw97Q664eAE38XVqM2MmaXFK8Z1bWu9ZUaq9XBMw00XVPmUe0JqHZIWNVIsMOmqclZjwevxA6N86R7ruL8vmGlhkLodYGWLxH1ZgAVBMewU7ScKEDooJml5gIPbw8mYaE5QWd5N8rhMhEBrvJvPGgMA6
+node> send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZtEVy1yjOGeMtHMK2OxSAMEN9sRPAFtPCIFbmDK6nXxLGtj8uDHGlHD9xiEsXevObR2jhgilQFT68he44I4FWBdHXYMcNrp9YQI9WnPvLQATrTBZgtR0xiM2BSSQ3IDB0eKeGLQOuRcC9FnwhSyHSBU7FSFWfMBzanlllO7rko1jgjI5517CQzwxWIC9ivMyxCxNDE282cO2du5sCXkwIcZoe1rEQkkyqLZyFGRqtpgUPXU2O9u44Jv6RzuysOJCEQcO4vc4RYV3UTA0ZYr1dmpf8FCLk2An3CnFmshlsNnnDx93YiIBoxwHcx89c5UeucCVyMXkr5ZTdLweWchlT0EaphXfMBj7EwXbg39AQ4wRTY9GsHkfz20ocwDBWXAhTBGA0FCEUkhhEKz1XwoEUA61w8l6msyQfEiRswEi2w3iArgFlvu8z0NUeTcpyPZNdqluFxdmcPoL8RlxSmRuPOqqw8pctTdwdUOlQdmYdY1f9cQu5DKWSF99Wp96bFVE9LoyNf7b9ft6xLhirCPhMlD8npSO5erUrWPpfaAvWcn4YIEvxWByXT5TPp0imdE3uBwDncxffnFiRCPamGcY5VqF8JpzOIdRCICIJfFGLtQaEPT8rWZGnTLqmQeswTJ8INsMzAw8HRxOIVsxgUVjjzpok0m852nOPALIzH49SxUdACxmaB1nxbo56aYHQrzwUQvKczJ662xUA6Jb99zUWLjLgSrI1adFh99CmiAFwZlSPCz5jbIsbq61bQIk4mZya4ZCW4hsn4N9vEw97Q664eAE38XVqM2MmaXFK8Z1bWu9ZUaq9XBMw00XVPmUe0JqHZIWNVIsMOmqclZjwevxA6N86R7ruL8vmGlhkLodYGWLxH1ZgAVBMewU7ScKEDooJml5gIPbw8mYaE5QWd5N8rhMhEBrvJvPGgMA6
+.
+.
+.
+[Summary] 0/989 packets discarded, loss rate = 0.0%
+^C> Exiting...
+
 receiver: python gbnnode.py 1111 2222 5 -p .25
+.
+.
+.
+[Summary] ~ 250/1000 packets dropped, loss rate = 0.25%
+^C> Exiting...
+
+--------------------------
