@@ -258,7 +258,7 @@ def get_timestamp():
     return formatted_timestamp
 
 def check_port_num(port_num):
-        #invalid port #
+        #check for invalid port #
         try:
             int(port_num)
         except:
