@@ -93,4 +93,13 @@ receiver: python gbnnode.py 1111 2222 5 -p .25
 [Summary] ~ 250/1000 packets dropped, loss rate = 0.25%
 ^C> Exiting...
 
---------------------------
+##############################################
+FOR dvnode
+
+(1) Basic Example, 3 nodes
+
+node 1111: python dvnode.py 1111 2222 .1
+
+node 2222: python dvnode.py 2222 1111 .1 3333 .2
+
+node 3333: python dvnode.py 3333 2222 .2 last
