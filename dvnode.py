@@ -11,6 +11,10 @@ routing_table = {}
 last_node = False
 local_port = 0
 receiver_ip = "0.0.0.0"
+base_case = False
+
+# Define a lock
+routing_table_lock = threading.Lock()
 
 def node_receiver(node_socket):
      #listen for incoming messages
@@ -28,46 +32,61 @@ def node_receiver(node_socket):
           #routing message received
           print(f"[{get_timestamp()}] Message received at Node <port-{local_port}> from Node <port-{sender_port}>")
 
-          #handle the received routing table
-          receive_routing_table(sender_port,sender_routing_table)
+          #handle the received routing table, create new thread
+          threading.Thread(target=receive_routing_table, args=(sender_port,sender_routing_table,node_socket,)).start()
 
-def receive_routing_table(sender_port,sender_routing_table):
-     global routing_table
+def receive_routing_table(sender_port,sender_routing_table, node_socket):
+     global routing_table,base_case
 
-     for destination, values in sender_routing_table.items():
-          #make sure we are not adding the node itself to its own routing table
-          if int(destination)!=local_port:
-            #new potential cost
-            total_cost = values[0] + routing_table[int(sender_port)][0]
-            if destination not in routing_table or total_cost < routing_table[destination][0]:
-                routing_table[destination] = [total_cost,values[1]]
+     #store the original routing table, to see if it actually changes
+     temp_routing_table = dict(routing_table)
+
+     # Acquire the lock before updating the routing table
+     with routing_table_lock:
+
+          for destination, values in sender_routing_table.items():
+               #cast port destination to int
+               destination = int(destination)
+
+               #make sure we are not adding the node itself to its own routing table
+               if destination!=local_port:
+
+                    #new potential cost, sender->destination + current_node->sender
+                    total_cost = round((values[0] + routing_table[int(sender_port)][0]), 4)
+                    # if local_port==4444 or local_port==1111:
+                    #      print(f"Node <port-{local_port}>: Sender {sender_port} to Destination {destination} - Total Cost: {total_cost}")
+                    if destination not in routing_table or total_cost < routing_table[destination][0]:
+                         #check to see if we already have a predecessor
+                         # if values[1] != None:
+                         #      routing_table[destination] = [total_cost,int(values[1])]
+                         # else:
+                              routing_table[destination] = [total_cost,int(sender_port)]
+     
      #print the updated routing_table
      print_routing_table()
 
      #if there is a change in the routing table or it is the first round
      # a node should send the updated info to its neighbors
-     #update_neighbors()
+     if base_case==False or temp_routing_table!=routing_table:
+          #we have fulfilled the base_case
+          base_case=True
+          update_neighbors(node_socket)
 
 
 
-# def update_neighbors():
-#      pass
+def update_neighbors(node_socket):
+     global local_port,routing_table
+      #send routing table to neighbors
+     for node in neighbors:
+          #data packet should include
+          #(1) sending node port, (2) most recent routing table
+          packet = f"{local_port} {json.dumps(routing_table)}"
 
+          #send packet
+          timestamp = get_timestamp()
+          print(f"[{timestamp}] Message sent from Node <port-{local_port}> to Node <port-{node}>")
+          node_socket.sendto(str.encode(packet),(receiver_ip,node))     
           
-     
-def node_sender(node_socket, kickoff):
-     #kickoff the process
-     if kickoff:
-          #send routing table to neighbors
-          for node in neighbors:
-               #data packet should include
-               #(1) sending node port, (2) most recent routing table
-               packet = f"{local_port} {json.dumps(routing_table)}"
-
-               #send packet
-               timestamp = get_timestamp()
-               print(f"[{timestamp}] Message sent from Node <port-{local_port}> to Node <port-{node}>")
-               node_socket.sendto(str.encode(packet),(receiver_ip,node))
 
 def check_port_num(port_num):
         #check for invalid port #
@@ -117,7 +136,7 @@ def print_routing_table():
      timestamp = get_timestamp()
      print(f"[{timestamp}] Node <port-{local_port}> Routing Table")
      for node in routing_table:
-          if node!=routing_table[node][1]:
+          if routing_table[node][1]!=None:
                print(f"- ({routing_table[node][0]}) Node {node}; Next hop -> Node {routing_table[node][1]}")
           else:
                print(f"- ({routing_table[node][0]}) Node {node}")
@@ -153,7 +172,7 @@ def main():
 
     #build the initial routing table and display
     for neighbor in neighbors:
-         routing_table[neighbor] = [neighbors[neighbor], neighbor]
+         routing_table[neighbor] = [neighbors[neighbor], None]
 
     #print the initial routing table
     print_routing_table()
@@ -175,8 +194,7 @@ def main():
 
     #if you are the last node, kick off the algorithm
     if last_node:
-        sender_thread = threading.Thread(target=node_sender, args=(node_socket,True))
-        sender_thread.start()
+        update_neighbors(node_socket)
 
     #wait for CTRL C to exit
     try:
