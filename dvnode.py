@@ -52,14 +52,8 @@ def receive_routing_table(sender_port,sender_routing_table, node_socket):
                if destination!=local_port:
 
                     #new potential cost, sender->destination + current_node->sender
-                    total_cost = round((values[0] + routing_table[int(sender_port)][0]), 4)
-                    # if local_port==4444 or local_port==1111:
-                    #      print(f"Node <port-{local_port}>: Sender {sender_port} to Destination {destination} - Total Cost: {total_cost}")
+                    total_cost = round((values[0] + neighbors[int(sender_port)]), 4)
                     if destination not in routing_table or total_cost < routing_table[destination][0]:
-                         #check to see if we already have a predecessor
-                         # if values[1] != None:
-                         #      routing_table[destination] = [total_cost,int(values[1])]
-                         # else:
                               routing_table[destination] = [total_cost,int(sender_port)]
      
      #print the updated routing_table

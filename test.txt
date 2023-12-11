@@ -99,10 +99,19 @@ FOR dvnode
 (1) Basic Example, 3 nodes
 
 node 1111: python dvnode.py 1111 2222 .1
+Node <port-1111> Routing Table
+- (0.1) Node 2222
+- (0.3) Node 3333; Next hop -> Node 2222
 
 node 2222: python dvnode.py 2222 1111 .1 3333 .2
+Node <port-2222> Routing Table
+- (0.1) Node 1111
+- (0.2) Node 3333
+
 
 node 3333: python dvnode.py 3333 2222 .2 last
+- (0.2) Node 2222
+- (0.3) Node 1111; Next hop -> Node 2222
 
 
 (2) Given Test Case
