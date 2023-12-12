@@ -56,15 +56,15 @@ def receive_routing_table(sender_port,sender_routing_table, node_socket):
                     if destination not in routing_table or total_cost < routing_table[destination][0]:
                               routing_table[destination] = [total_cost,int(sender_port)]
      
-     #print the updated routing_table
-     print_routing_table()
+          #print the updated routing_table
+          print_routing_table()
 
-     #if there is a change in the routing table or it is the first round
-     # a node should send the updated info to its neighbors
-     if base_case==False or temp_routing_table!=routing_table:
-          #we have fulfilled the base_case
-          base_case=True
-          update_neighbors(node_socket)
+          #if there is a change in the routing table or it is the first round
+          # a node should send the updated info to its neighbors
+          if base_case==False or temp_routing_table!=routing_table:
+               #we have fulfilled the base_case
+               base_case=True
+               update_neighbors(node_socket)
 
 
 
