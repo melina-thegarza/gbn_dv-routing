@@ -24,20 +24,44 @@ send_bases = {}
 num_packets_sent = {}
 #keep track, on the sender the total amount of ACKS received
 num_acks_received = {}
-#keep a timer for each probe receiver
+#timeout of 500 msec
 TIMEOUT_INTERVAL = 0.5
+#keep a timer for each probe receiver
 timers = {}
 
 
 # Define a lock
 routing_table_lock = threading.Lock()
 
-def is_probe_packet(data):
-    try:
-        json.loads(data)
-        return True
-    except json.JSONDecodeError:
-        return False
+#The updates of routing table should only be sent out 1) for every 5 seconds (if there is any change in the
+#rounded distances based on the newly calculated loss rate),
+def every_5_seconds_update(node_socket):
+     global num_packets_sent, num_acks_received, sending_neighbors
+     while(True):
+         # Acquire the lock before updating the routing table
+        with routing_table_lock:
+             #initially assume we will not send our neighbors an update
+             should_send_update = False
+             
+             #get the loss rate
+             for node in sending_neighbors:
+                loss_count = num_packets_sent[node]-num_acks_received[node]
+                try:
+                    new_loss_rate = round(loss_count/num_packets_sent[node],2)
+                except ZeroDivisionError:
+                    new_loss_rate = 0.0
+                #check if is different from the current distance in the routing table, if so update it
+                current_loss_rate = routing_table[node][0]
+                if current_loss_rate !=new_loss_rate:
+                     routing_table[node] = [new_loss_rate,None]
+                     should_send_update = True
+
+        if should_send_update:
+             update_neighbors(node_socket, False)
+            
+        #wait 5 seconds until next round of updates
+        time.sleep(5)
+
 
 def node_receiver(node_socket):
      #listen for incoming messages
@@ -88,8 +112,6 @@ def handle_probe_packet(node_socket, probe_sender, packet):
             #random.random generates a number between [0.0,1.0), only ACK if we don't drop packet
             value_of_p = receiving_neighbors[probe_sender]
             if not random.random() < value_of_p:
-                    # print(f"[{timestamp}] packet{pkt_num} {repr(data)} received")
-                    # receiver_total+=1
                     #check if pkt is received in correct order
                     if recv_bases[probe_sender]==pkt_num:
                          #send new ack
@@ -115,7 +137,6 @@ def handle_probe_packet(node_socket, probe_sender, packet):
 
 
 def node_ack_sender(node_socket,probe_sender,pkt_num,out_of_order):
-    timestamp = get_timestamp()
     global recv_bases
 
     #move window if not out_of_order
@@ -147,26 +168,50 @@ def receive_routing_table(sender_port,sender_routing_table, node_socket):
      # Acquire the lock before updating the routing table
      with routing_table_lock:
 
-          for destination, values in sender_routing_table.items():
+        #if I'm receiving from the sender, update the direct link cost
+        if int(sender_port) in receiving_neighbors:
+             #make sure that there isn't a next hop, needs to be direct link update
+             if sender_routing_table[str(local_port)][1] == None:
+
+                #make sure that the direct link is better than the current hop link
+                if(routing_table[int(sender_port)][1]!=None):
+                        if(sender_routing_table[str(local_port)][0] < routing_table[int(sender_port)][0]):
+                              routing_table[int(sender_port)] = [sender_routing_table[str(local_port)][0], None]
+                #if direct link, and no hop, override to get updated loss rate
+                elif routing_table[int(sender_port)][1]==None:
+                     routing_table[int(sender_port)] = [sender_routing_table[str(local_port)][0], None]
+              
+             
+        #iterate through DV update, update own routing table if we have a new shortest path
+        for destination, values in sender_routing_table.items():
                #cast port destination to int
                destination = int(destination)
 
                #make sure we are not adding the node itself to its own routing table
                if destination!=local_port:
 
-                    #new potential cost, sender->destination + current_node->sender
-                    #TOTAL COST NEED TO FIX
-                    #round to second decimal place
-                    total_cost = round((values[0] + routing_table[int(sender_port)][0]), 2)
-                    if destination not in routing_table or total_cost < routing_table[destination][0]:
-                              routing_table[destination] = [total_cost,int(sender_port)]
-     
-          #print the updated routing_table
-          print_routing_table()
+                     #round to second decimal place
+                            #new potential cost, sender->destination + current_node->sender
+                            total_cost = round((values[0] + routing_table[int(sender_port)][0]), 2)
+                            #if destination not in routing_table 
+                            if destination not in routing_table:
+                                routing_table[destination] = [total_cost,int(sender_port)]
+                            #if is already the next hop
+                            elif int(sender_port)==routing_table[destination][1]:
+                                 routing_table[destination] = [total_cost,int(sender_port)]
+                            #not the original next hop, new distance must be smaller
+                            else:
+                                 #make sure that the link between current node and sender doesn't contain a hop
+                                 if total_cost < routing_table[destination][0] and routing_table[int(sender_port)][1]==None:
+                                       routing_table[destination] = [total_cost,int(sender_port)]
+                                  
+        
+        #print the updated routing_table
+        print_routing_table()
 
-          #if there is a change in the routing table or it is the first round
-          # a node should send the updated info to its neighbors
-          if base_case==False or temp_routing_table!=routing_table:
+        #if there is a change in the routing table or it is the first round
+        # a node should send the updated info to its neighbors
+        if base_case==False or temp_routing_table!=routing_table:
                #check to see if this is the first DV update
                first_time = True if base_case==False else False
                #we have fulfilled the base_case
@@ -206,6 +251,9 @@ def update_neighbors(node_socket,first_time):
           for probe_receiver in sending_neighbors:
             probe_send_thread = threading.Thread(target=probe_sender,args=(node_socket,probe_receiver))
             probe_send_thread.start()
+          
+          #create thread to recalculate loss rates every 5 seconds and send updates if change is detected
+          threading.Thread(target=every_5_seconds_update, args=(node_socket,)).start()   
 
 def probe_sender(node_socket, probe_receiver):
     #  global send_base
@@ -228,7 +276,7 @@ def probe_sender(node_socket, probe_receiver):
         for pkt_num in range(send_base,window_size+send_base):
             #add probe packets to the sender_buffer, to handle culmulative ACK
             #we want a continous stream
-            for x in range(0,5):
+            for x in range(0,10):
                 sender_buffer.append('p')
 
             #send packets in window that haven't already been sent
@@ -289,6 +337,13 @@ def create_32_bit_seq_num(ack_flag,seqnum):
      # Combine flag_bit and number_bits using bitwise OR
      result = (flag_bit << 31) | number_bits
      return result
+
+def is_probe_packet(data):
+    try:
+        json.loads(data)
+        return True
+    except json.JSONDecodeError:
+        return False
 
 def check_rate_loss(rate_loss):
      #check for invalid rate_loss
