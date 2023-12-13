@@ -7,24 +7,27 @@ import time
 import random
 
 #global variables -> need to differentiate between sender and receiver
-receiver_ip = "0.0.0.0"
-receiver_port = 0
-sender_buffer = []
-next_seq_num = 0
-send_base = 0
-recv_base = 0
-window_size = 0
-sent_packet_numbers = []
 value_of_n = 0
 value_of_p = 0.0
 drop_option = ""
+#receiver
+receiver_ip = "0.0.0.0"
+receiver_port = 0
+recv_base = 0
 receiver_discarded = 0
 receiver_total = 0
+receiver_eot_num = -1
+#sender
+window_size = 0
+sender_buffer = []
+next_seq_num = 0
+send_base = 0
+sent_packet_numbers = []
 sender_discarded = 0
 sender_total = 0
 resend_window = False
 end_of_transmission = False
-receiver_eot_num = -1
+
 
 # Set the timeout, don't start yet
 TIMEOUT_INTERVAL = 0.5
