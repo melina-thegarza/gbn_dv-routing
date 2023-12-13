@@ -16,7 +16,7 @@ node> [1702161463.751] packet0 'a' sent
 [1702161463.780] ACK4 received, window moves to 5
 [1702161463.780] packet5 '\x00' sent
 [1702161463.788] ACK5 received, window moves to 6
-[Summary] 0/6 packets discarded, loss rate = 0.0%
+[Summary] 0/6 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
 receiver: python gbnnode.py 1111 2222 3 -p 0
@@ -32,7 +32,7 @@ node> [1702161463.753] packet0 'a' received
 [1702161463.762] ACK4 sent, expecting packet5
 [1702161463.781] packet5 '\x00' received
 [1702161463.781] ACK5 sent, expecting packet6
-[Summary] 0/6 packets dropped, loss rate = 0.0%
+[Summary] 0/6 packets dropped, loss rate = 0.0
 ^C> Exiting...
 
 (2) Send multiple messages
@@ -46,7 +46,7 @@ node> [1702163868.690] packet0 'h' sent
 [1702163869.200] packet2 timeout
 [1702163869.200] packet2 '\x00' sent
 [1702163869.207] ACK2 received, window moves to 3
-[Summary] 0/3 packets discarded, loss rate = 0.0%
+[Summary] 0/3 packets discarded, loss rate = 0.0
 send hi
 node> [1702163903.119] packet3 'h' sent
 [1702163903.119] packet4 'i' sent
@@ -54,7 +54,7 @@ node> [1702163903.119] packet3 'h' sent
 [1702163903.132] ACK4 received, window moves to 5
 [1702163903.132] packet5 '\x00' sent
 [1702163903.138] ACK5 received, window moves to 6
-[Summary] 0/3 packets discarded, loss rate = 0.0%
+[Summary] 0/3 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
 receiver: python gbnnode.py 1111 2222 3 -p .25
@@ -65,14 +65,14 @@ node> [1702163868.692] packet0 'h' received
 [1702163868.700] packet2 '\x00' discarded
 [1702163869.201] packet2 '\x00' received
 [1702163869.201] ACK2 sent, expecting packet3
-[Summary] 1/4 packets dropped, loss rate = 0.25%
+[Summary] 1/4 packets dropped, loss rate = 0.25
 [1702163903.120] packet3 'h' received
 [1702163903.120] packet4 'i' received
 [1702163903.120] ACK3 sent, expecting packet4
 [1702163903.121] ACK4 sent, expecting packet5
 [1702163903.132] packet5 '\x00' received
 [1702163903.132] ACK5 sent, expecting packet6
-[Summary] 0/3 packets dropped, loss rate = 0.0%
+[Summary] 0/3 packets dropped, loss rate = 0.0
 ^C> Exiting...
 
 
@@ -83,14 +83,14 @@ node> send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZt
 .
 .
 .
-[Summary] 0/989 packets discarded, loss rate = 0.0%
+[Summary] 0/989 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
 receiver: python gbnnode.py 1111 2222 5 -p .25
 .
 .
 .
-[Summary] ~ 250/1000 packets dropped, loss rate = 0.25%
+[Summary] ~ 250/1000 packets dropped, loss rate = 0.25
 ^C> Exiting...
 
 ##############################################
@@ -248,3 +248,12 @@ node 7777: python dvnode.py 7777 4444 .4 2222 .2 5555 .1 6666 .2 last
 
 #########################
 FOR cvnode
+(1) Given Test Case
+
+node 1111: python cnnode.py 1111 receive send 2222 3333
+
+node 2222: python cnnode.py 2222 receive 1111 .1 send 3333 4444
+
+node 3333: python cnnode.py 3333 receive 1111 .5 2222 .2 send 4444
+
+node 4444: python cnnode.py 4444 receive 2222 .8 3333 .5 send last

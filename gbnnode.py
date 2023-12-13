@@ -117,7 +117,7 @@ def node_receiver(node_socket):
                          sender_total+=1
 
                          #add logic to calculate summary
-                         print(f"[Summary] {sender_discarded}/{sender_total} packets discarded, loss rate = {sender_discarded/sender_total}%")
+                         print(f"[Summary] {sender_discarded}/{sender_total} packets discarded, loss rate = {sender_discarded/sender_total}")
                          
                          #declare we are at end of transmission, close the thread
                          global end_of_transmission
@@ -135,12 +135,12 @@ def node_receiver(node_socket):
                          sender_total+=1
                          print(f"[{timestamp}] ACK{pkt_num} received, window moves to {send_base}")
 
-def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
+def node_ack_sender(node_socket,pkt_num,out_of_order,is_terminator):
      timestamp = get_timestamp()
      global recv_base
 
      #termination
-     if is_termintor:
+     if is_terminator:
            #form the packet, is an ACK
                #make sure we expecting the pkt $ after the end of transmission pkt
                recv_base=pkt_num+1
@@ -153,7 +153,7 @@ def node_ack_sender(node_socket,pkt_num,out_of_order,is_termintor):
 
                global receiver_discarded,receiver_total, receiver_eot_num
                #add logic to calculate summary
-               print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}%")
+               print(f"[Summary] {receiver_discarded}/{receiver_total} packets dropped, loss rate = {receiver_discarded/receiver_total}")
                
                #set the EOT pkt_num, so that when we receive the next pkt_num
                #we know we've entered the next transmission
