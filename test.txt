@@ -83,14 +83,14 @@ node> send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZt
 .
 .
 .
-[Summary] 0/989 packets discarded, loss rate = 0.0
+[Summary] ~ 0/1873 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
 receiver: python3 gbnnode.py 1111 2222 5 -p .25
 .
 .
 .
-[Summary] ~ 250/1000 packets dropped, loss rate = 0.25
+[Summary] ~ 634/2507 packets dropped, loss rate = 0.25289190267251693
 ^C> Exiting...
 
 ##############################################
@@ -286,7 +286,7 @@ node 3333: python3 cnnode.py 3333 receive 2222 .2 send last
 - (0.3) Node 1111; Next hop -> Node 2222
 
 
-(2) Given Test Case -> converges when around 2000 packets have been sent
+(2) Given Test Case -> converges when around 2000 probe packets have been sent
 
 node 1111: python3 cnnode.py 1111 receive send 2222 3333
 .
