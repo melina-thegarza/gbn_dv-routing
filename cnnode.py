@@ -29,6 +29,9 @@ TIMEOUT_INTERVAL = 0.5
 #keep a timer for each probe receiver
 timers = {}
 
+import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
+
 
 # Define a lock
 routing_table_lock = threading.Lock()
@@ -64,13 +67,16 @@ def every_5_seconds_update(node_socket):
 
 
 def node_receiver(node_socket):
-     #listen for incoming messages
-     while(True):
+    # Use ThreadPoolExecutor for handling incoming packets
+     with ThreadPoolExecutor(max_workers=10) as executor:
+        #listen for incoming messages
+        while(True):
 
-          #handle message
-          packet = node_socket.recvfrom(65535)
-          #create thread to process message
-          threading.Thread(target=process_packet, args=(node_socket,packet)).start()
+            #handle message
+            packet = node_socket.recvfrom(65535)
+            #create thread to process message
+            executor.submit(process_packet, node_socket, packet)
+            # threading.Thread(target=process_packet, args=(node_socket,packet)).start()
          
 
 def process_packet(node_socket,packet):
@@ -276,7 +282,7 @@ def probe_sender(node_socket, probe_receiver):
         for pkt_num in range(send_base,window_size+send_base):
             #add probe packets to the sender_buffer, to handle culmulative ACK
             #we want a continous stream
-            for x in range(0,5):
+            for _ in range(5):
                 sender_buffer.append('p')
 
             #send packets in window that haven't already been sent

@@ -248,7 +248,7 @@ node 7777: python3 dvnode.py 7777 4444 .4 2222 .2 5555 .1 6666 .2 last
 
 #########################
 FOR cvnode
-(1) Basic Test Case, 3 nodes -> basically converges around 1000 packets
+(1) Basic Test Case, 3 nodes -> practically converges after a couple of hundred of probe packets have been sent
 
 node 1111: python3 cnnode.py 1111 receive send 2222
 .
