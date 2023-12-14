@@ -70,16 +70,16 @@ Name: Melina Garza Uni: mjg2290
 
 ## OVERVIEW OF DATA STRUCTURES USED
 	# Go-Back-N Protocol
-		#
-		#
-		#
+		# sender_buffer -> buffer[list] that all data packets are put in before being sent out
+		# sent_packet_numbers -> list that keeps track of the packets we have already sent
 		
 	# Distance-Vector Routing Algorithm
-		#
-		#
-		#
+		# neighbors -> global dictionary that holds each neighbor's info, format: {neighbor-port-#: loss-rate/distance}, used in the DV algorithm
+		# routing_table -> global dictionary that keeps track of the node's local_routing_table, format: {neighbor-port-#: [loss-rate/distance, next-hop]}
 	
 	# Combination
-		#
-		#
-		#
+		# timers -> global dictionary that holds a timer for each probe receiver, used for timeout calculations for sending probe packets
+		# num_packets_sent -> global dictionary that keeps track, on the sender side of the total amount of packets sent to each probe receiver, format: {neighbor-port-#: packets_sent}
+		# num_acks_received -> global dictionary that keeps track, on the sender side of the total amount of ACKS received from each probe receiver, format: {neighbor-port-#: acks_received}
+		# recv_bases -> global dictionary that keeps track of our various recv_bases for the different links, format: {neighbor-port-#: recv_base_#}
+		# send_bases -> global dictionary that keeps track of our various send_bases for the different links, format: {neighbor-port-#: send_base_#}
