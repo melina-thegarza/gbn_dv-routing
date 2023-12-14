@@ -6,7 +6,7 @@ import json
 import time
 import random
 
-#global variables -> need to differentiate between sender and receiver
+#global variables 
 value_of_n = 0
 value_of_p = 0.0
 drop_option = ""
@@ -126,7 +126,6 @@ def node_receiver(node_socket):
                          global end_of_transmission
                          end_of_transmission = True
 
-                         #add logic to prep for next send transaction!!!
                     else:
                          #check if duplicate ack, don't move window
                          if not pkt_num<send_base:
