@@ -34,6 +34,52 @@ Name: Melina Garza Uni: mjg2290
 
 ## PACKET STRUCTURE
 
+	# Go-Back-N Protocol
+		packet = 5 bytes total
+			packet header = 4 bytes -> 32 bit sequence #, 31st bit determines whether ACK(=1) or Message(=0), 30th-0th is the packet sequence number
+			data = 1 byte
+	# Distance-Vector Routing Algorithm
+		packet = f"{local_port} {json.dumps(routing_table)}"
+	# Combination
+		probe packets = same as GBN packet but data is a const char = 'p'
+
 ## OVERVIEW OF FUNCTIONS IMPLEMENTED
+	# Used by all
+		# create_32_bit_seq_num(ack_flag,seqnum) -> creates the packet header which includes a flag to determine if it is an ACK or Messsage, & the packet sequence number
+		# get_timestamp() -> used to get a nicely formatted timestamp, down to the millisecond
+		# check_port_num(port_num) -> ensures that our port numbers are valid and returns the port_num as an int
+		
+	# Go-Back-N Protocol
+		# node_receiver(node_socket) -> this thread that handles all incoming packets(Messages & ACKs), also performs probabilistic and deterministic dropping of the packets
+		# node_ack_sender(node_socket,pkt_num,out_of_order,is_terminator) -> handles the sending of ACKS back to the sender
+		# node_sender(node_socket,message) -> this thread handles the sending of messages(Non-ACK packets) to the receiver, implements the timeout & resends the entire window if we encounter a timeout
+		
+	# Distance-Vector Routing Algorithm
+		# node_receiver(node_socket) -> this thread handles all DV updates from its neighbors, creates a separate thread to handle the processing of the sent DV routing table
+		# receive_routing_table(sender_port,sender_routing_table, node_socket) -> uses the Bellman-Ford algorithm to update local routing table based on sender's routing table, if updates are made it triggers update_neighbors()
+		# update_neighbors(node_socket) -> when there is a change in the local DV routing table, sends routing table to neighbors
+	
+	# Combination
+		# every_5_seconds_update(node_socket) ->  updates of routing table should only be sent out every 5 seconds, if there's any change in the rounded distances based on the newly calculated loss rate
+		# node_receiver(node_socket) -> uses ThreadPoolExecutor for handling incoming packets, we have a pool of max 10 threads that are processing the packets
+		# process_packet(node_socket,packet) -> differentiates between receiving DV updates and receiving probe packets, triggers respective threads to handle the packet correctly
+		# handle_probe_packet(node_socket, probe_sender, packet) -> as the probe receiver I drop the packets based on the probabilistic drop value & as the probe sender I never drop any ACKs
+		# receive_routing_table(sender_port,sender_routing_table, node_socket) -> similar to part 3's implementation, major differences include how it handles receiving a direct link cost update from a probe sender and being more cautious about paths with next-hops
+		# probe_sender(node_socket, probe_receiver) -> a thread for each node we are sending to is created: this function is responsible for continuously sending probe packets to the probe receiver & follows similar logic to the node_sender in the GBN protocol, except that certain things are pre-set such as window size
+		# packet_loss_rate_status_messages() -> handles displaying the packet loss rate for each link every 1 second
 
 ## OVERVIEW OF DATA STRUCTURES USED
+	# Go-Back-N Protocol
+		#
+		#
+		#
+		
+	# Distance-Vector Routing Algorithm
+		#
+		#
+		#
+	
+	# Combination
+		#
+		#
+		#
