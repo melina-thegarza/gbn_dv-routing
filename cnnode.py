@@ -69,29 +69,29 @@ def node_receiver(node_socket):
 
           #handle message
           packet = node_socket.recvfrom(65535)
-          probe_sender = packet[1][1]
-          packet = packet[0].decode()
+          #create thread to process message
+          threading.Thread(target=process_packet, args=(node_socket,packet)).start()
+         
 
-          #DIFFERENTIATE between receiving DV updates and receiving probe packets
-          probe_packet = is_probe_packet(packet)
-          #if we are receiving a probe packet, follow GBN
-          #  drop probabilistically using the info in receiving_neighbors
-          if probe_packet:
-               #create thread to handle received probe_packet
-               threading.Thread(target=handle_probe_packet, args=(node_socket,probe_sender,packet)).start()
+def process_packet(node_socket,packet):
+        probe_sender = packet[1][1]
+        packet = packet[0].decode()
 
-          #DV Routing Table
-          else:
-               
+        #DIFFERENTIATE between receiving DV updates and receiving probe packets
+        probe_packet = is_probe_packet(packet)
+        #if we are receiving a probe packet, follow GBN
+        #  drop probabilistically using the info in receiving_neighbors
+        if probe_packet:
+            #create thread to handle received probe_packet
+            threading.Thread(target=handle_probe_packet, args=(node_socket,probe_sender,packet)).start()
+        #DV Routing Table
+        else:
             #sending node port 
             sender_port = packet.split(" ",1)[0]
-
             #sender's routing table
             sender_routing_table = json.loads(packet.split(" ",1)[1])
-
             #routing message received
             print(f"[{get_timestamp()}] Message received at Node <port-{local_port}> from Node <port-{sender_port}>")
-
             #handle the received routing table, create new thread
             threading.Thread(target=receive_routing_table, args=(sender_port,sender_routing_table,node_socket,)).start()
 
@@ -276,7 +276,7 @@ def probe_sender(node_socket, probe_receiver):
         for pkt_num in range(send_base,window_size+send_base):
             #add probe packets to the sender_buffer, to handle culmulative ACK
             #we want a continous stream
-            for x in range(0,10):
+            for x in range(0,5):
                 sender_buffer.append('p')
 
             #send packets in window that haven't already been sent
@@ -477,7 +477,9 @@ def main():
     node_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         
     #bind to ip address & port
+    # BUFFER_SIZE = 8192  # Set your preferred buffer size
     node_socket.bind((node_ip,local_port))
+    # node_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE)
 
      #start receiver thread
     receiver_thread = threading.Thread(target=node_receiver, args=(node_socket,))
