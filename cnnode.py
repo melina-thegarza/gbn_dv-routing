@@ -76,7 +76,6 @@ def node_receiver(node_socket):
             packet = node_socket.recvfrom(65535)
             #create thread to process message
             executor.submit(process_packet, node_socket, packet)
-            # threading.Thread(target=process_packet, args=(node_socket,packet)).start()
          
 
 def process_packet(node_socket,packet):
@@ -483,9 +482,7 @@ def main():
     node_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
         
     #bind to ip address & port
-    # BUFFER_SIZE = 8192  # Set your preferred buffer size
     node_socket.bind((node_ip,local_port))
-    # node_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFFER_SIZE)
 
      #start receiver thread
     receiver_thread = threading.Thread(target=node_receiver, args=(node_socket,))
