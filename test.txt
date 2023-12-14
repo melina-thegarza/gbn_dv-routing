@@ -2,7 +2,7 @@ FOR gbnnode
 
 (1) Send normal message, with no failure
 
-sender:  python gbnnode.py 2222 1111 3 -p 0
+sender:  python3 gbnnode.py 2222 1111 3 -p 0
 node> send abcde  
 node> [1702161463.751] packet0 'a' sent
 [1702161463.752] packet1 'b' sent
@@ -19,7 +19,7 @@ node> [1702161463.751] packet0 'a' sent
 [Summary] 0/6 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
-receiver: python gbnnode.py 1111 2222 3 -p 0
+receiver: python3 gbnnode.py 1111 2222 3 -p 0
 node> [1702161463.753] packet0 'a' received
 [1702161463.754] ACK0 sent, expecting packet1
 [1702161463.755] packet1 'b' received
@@ -36,7 +36,7 @@ node> [1702161463.753] packet0 'a' received
 ^C> Exiting...
 
 (2) Send multiple messages
-sender: python gbnnode.py 2222 1111 3 -p 0
+sender: python3 gbnnode.py 2222 1111 3 -p 0
 node> send hi
 node> [1702163868.690] packet0 'h' sent
 [1702163868.692] packet1 'i' sent
@@ -57,7 +57,7 @@ node> [1702163903.119] packet3 'h' sent
 [Summary] 0/3 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
-receiver: python gbnnode.py 1111 2222 3 -p .25
+receiver: python3 gbnnode.py 1111 2222 3 -p .25
 node> [1702163868.692] packet0 'h' received
 [1702163868.693] ACK0 sent, expecting packet1
 [1702163868.694] packet1 'i' received
@@ -78,7 +78,7 @@ node> [1702163868.692] packet0 'h' received
 
 (3) Send 1000 char message, loss rate calculation
 
-sender: python gbnnode.py 2222 1111 5 -p 0
+sender: python3 gbnnode.py 2222 1111 5 -p 0
 node> send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZtEVy1yjOGeMtHMK2OxSAMEN9sRPAFtPCIFbmDK6nXxLGtj8uDHGlHD9xiEsXevObR2jhgilQFT68he44I4FWBdHXYMcNrp9YQI9WnPvLQATrTBZgtR0xiM2BSSQ3IDB0eKeGLQOuRcC9FnwhSyHSBU7FSFWfMBzanlllO7rko1jgjI5517CQzwxWIC9ivMyxCxNDE282cO2du5sCXkwIcZoe1rEQkkyqLZyFGRqtpgUPXU2O9u44Jv6RzuysOJCEQcO4vc4RYV3UTA0ZYr1dmpf8FCLk2An3CnFmshlsNnnDx93YiIBoxwHcx89c5UeucCVyMXkr5ZTdLweWchlT0EaphXfMBj7EwXbg39AQ4wRTY9GsHkfz20ocwDBWXAhTBGA0FCEUkhhEKz1XwoEUA61w8l6msyQfEiRswEi2w3iArgFlvu8z0NUeTcpyPZNdqluFxdmcPoL8RlxSmRuPOqqw8pctTdwdUOlQdmYdY1f9cQu5DKWSF99Wp96bFVE9LoyNf7b9ft6xLhirCPhMlD8npSO5erUrWPpfaAvWcn4YIEvxWByXT5TPp0imdE3uBwDncxffnFiRCPamGcY5VqF8JpzOIdRCICIJfFGLtQaEPT8rWZGnTLqmQeswTJ8INsMzAw8HRxOIVsxgUVjjzpok0m852nOPALIzH49SxUdACxmaB1nxbo56aYHQrzwUQvKczJ662xUA6Jb99zUWLjLgSrI1adFh99CmiAFwZlSPCz5jbIsbq61bQIk4mZya4ZCW4hsn4N9vEw97Q664eAE38XVqM2MmaXFK8Z1bWu9ZUaq9XBMw00XVPmUe0JqHZIWNVIsMOmqclZjwevxA6N86R7ruL8vmGlhkLodYGWLxH1ZgAVBMewU7ScKEDooJml5gIPbw8mYaE5QWd5N8rhMhEBrvJvPGgMA6
 .
 .
@@ -86,7 +86,7 @@ node> send WtkYuwa6d12FQyLfpDbgb7jYk49Pk0KfzQIlHBQwmD0nErd2EGOy0uOy6IW0qFdORqGZt
 [Summary] 0/989 packets discarded, loss rate = 0.0
 ^C> Exiting...
 
-receiver: python gbnnode.py 1111 2222 5 -p .25
+receiver: python3 gbnnode.py 1111 2222 5 -p .25
 .
 .
 .
@@ -98,43 +98,43 @@ FOR dvnode
 
 (1) Basic Example, 3 nodes
 
-node 1111: python dvnode.py 1111 2222 .1
+node 1111: python3 dvnode.py 1111 2222 .1
 Node <port-1111> Routing Table
 - (0.1) Node 2222
 - (0.3) Node 3333; Next hop -> Node 2222
 
-node 2222: python dvnode.py 2222 1111 .1 3333 .2
+node 2222: python3 dvnode.py 2222 1111 .1 3333 .2
 Node <port-2222> Routing Table
 - (0.1) Node 1111
 - (0.2) Node 3333
 
 
-node 3333: python dvnode.py 3333 2222 .2 last
+node 3333: python3 dvnode.py 3333 2222 .2 last
 - (0.2) Node 2222
 - (0.3) Node 1111; Next hop -> Node 2222
 
 
 (2) Given Test Case
 
-node 1111: python dvnode.py 1111 2222 .1 3333 .5
+node 1111: python3 dvnode.py 1111 2222 .1 3333 .5
 [1702255672.748] Node <port-1111> Routing Table
 - (0.1) Node 2222
 - (0.3) Node 3333; Next hop -> Node 2222
 - (0.8) Node 4444; Next hop -> Node 2222
 
-node 2222: python dvnode.py 2222 1111 .1 3333 .2 4444 .8
+node 2222: python3 dvnode.py 2222 1111 .1 3333 .2 4444 .8
 [1702255672.763] Node <port-2222> Routing Table
 - (0.1) Node 1111
 - (0.2) Node 3333
 - (0.7) Node 4444; Next hop -> Node 3333
 
-node 3333: python dvnode.py 3333 1111 .5 2222 .2 4444 .5
+node 3333: python3 dvnode.py 3333 1111 .5 2222 .2 4444 .5
 [1702255672.849] Node <port-3333> Routing Table
 - (0.3) Node 1111; Next hop -> Node 2222
 - (0.2) Node 2222
 - (0.5) Node 4444
 
-node 4444: python dvnode.py 4444 2222 .8 3333 .5 last
+node 4444: python3 dvnode.py 4444 2222 .8 3333 .5 last
 [1702255672.778] Node <port-4444> Routing Table
 - (0.7) Node 2222; Next hop -> Node 3333
 - (0.5) Node 3333
@@ -143,35 +143,35 @@ node 4444: python dvnode.py 4444 2222 .8 3333 .5 last
 
 (3) Basic Example, 5 nodes
 
-node 1111: python dvnode.py 1111 2222 .7 3333 .2 4444 .1 5555 .1
+node 1111: python3 dvnode.py 1111 2222 .7 3333 .2 4444 .1 5555 .1
 [1702339177.042] Node <port-1111> Routing Table
 - (0.25) Node 2222; Next hop -> Node 4444
 - (0.15) Node 3333; Next hop -> Node 4444
 - (0.1) Node 4444
 - (0.1) Node 5555
 
-node 2222: python dvnode.py 2222 1111 .7 3333 .1 5555 .2
+node 2222: python3 dvnode.py 2222 1111 .7 3333 .1 5555 .2
 [1702339176.988] Node <port-2222> Routing Table
 - (0.25) Node 1111; Next hop -> Node 3333
 - (0.1) Node 3333
 - (0.2) Node 5555
 - (0.15) Node 4444; Next hop -> Node 3333
 
-node 3333: python dvnode.py 3333 1111 .2 2222 .1 4444 .05
+node 3333: python3 dvnode.py 3333 1111 .2 2222 .1 4444 .05
 [1702339177.005] Node <port-3333> Routing Table
 - (0.15) Node 1111; Next hop -> Node 4444
 - (0.1) Node 2222
 - (0.05) Node 4444
 - (0.25) Node 5555; Next hop -> Node 4444
 
-node 4444: python dvnode.py 4444 1111 .1 3333 .05
+node 4444: python3 dvnode.py 4444 1111 .1 3333 .05
 [1702339176.989] Node <port-4444> Routing Table
 - (0.1) Node 1111
 - (0.05) Node 3333
 - (0.15) Node 2222; Next hop -> Node 3333
 - (0.2) Node 5555; Next hop -> Node 1111
 
-node 5555: python dvnode.py 5555 1111 .1 2222 .2 last
+node 5555: python3 dvnode.py 5555 1111 .1 2222 .2 last
 [1702339176.983] Node <port-5555> Routing Table
 - (0.1) Node 1111
 - (0.2) Node 2222
@@ -182,7 +182,7 @@ node 5555: python dvnode.py 5555 1111 .1 2222 .2 last
 
 (4) Basic Example, 7 nodes
 
-node 1111: python dvnode.py 1111 2222 .5 3333 .2 4444 .3
+node 1111: python3 dvnode.py 1111 2222 .5 3333 .2 4444 .3
 [1702341413.206] Node <port-1111> Routing Table
 - (0.5) Node 2222
 - (0.2) Node 3333
@@ -191,7 +191,7 @@ node 1111: python dvnode.py 1111 2222 .5 3333 .2 4444 .3
 - (0.5) Node 7777; Next hop -> Node 3333
 - (0.7) Node 6666; Next hop -> Node 3333
 
-node 2222: python dvnode.py 2222 1111 .5 3333 .6 5555 .5 7777 .2
+node 2222: python3 dvnode.py 2222 1111 .5 3333 .6 5555 .5 7777 .2
 [1702341413.242] Node <port-2222> Routing Table
 - (0.5) Node 1111
 - (0.5) Node 3333; Next hop -> Node 7777
@@ -200,7 +200,7 @@ node 2222: python dvnode.py 2222 1111 .5 3333 .6 5555 .5 7777 .2
 - (0.6) Node 4444; Next hop -> Node 7777
 - (0.4) Node 6666; Next hop -> Node 7777
 
-node 3333: python dvnode.py 3333 1111 .2 2222 .6 4444 .6 5555 .2
+node 3333: python3 dvnode.py 3333 1111 .2 2222 .6 4444 .6 5555 .2
 [1702341413.211] Node <port-3333> Routing Table
 - (0.2) Node 1111
 - (0.5) Node 2222; Next hop -> Node 5555
@@ -209,7 +209,7 @@ node 3333: python dvnode.py 3333 1111 .2 2222 .6 4444 .6 5555 .2
 - (0.3) Node 7777; Next hop -> Node 5555
 - (0.5) Node 6666; Next hop -> Node 5555
 
-node 4444: python dvnode.py 4444 1111 .3 3333 .6 7777 .4
+node 4444: python3 dvnode.py 4444 1111 .3 3333 .6 7777 .4
 [1702341413.242] Node <port-4444> Routing Table
 - (0.3) Node 1111
 - (0.5) Node 3333; Next hop -> Node 1111
@@ -218,7 +218,7 @@ node 4444: python dvnode.py 4444 1111 .3 3333 .6 7777 .4
 - (0.5) Node 5555; Next hop -> Node 7777
 - (0.6) Node 6666; Next hop -> Node 7777
 
-node 5555: python dvnode.py 5555 3333 .2 2222 .5 6666 .4 7777 .1
+node 5555: python3 dvnode.py 5555 3333 .2 2222 .5 6666 .4 7777 .1
 [1702341413.266] Node <port-5555> Routing Table
 - (0.2) Node 3333
 - (0.3) Node 2222; Next hop -> Node 7777
@@ -227,7 +227,7 @@ node 5555: python dvnode.py 5555 3333 .2 2222 .5 6666 .4 7777 .1
 - (0.5) Node 4444; Next hop -> Node 7777
 - (0.4) Node 1111; Next hop -> Node 3333
 
-node 6666: python dvnode.py 6666 5555 .4 7777 .2
+node 6666: python3 dvnode.py 6666 5555 .4 7777 .2
 [1702341413.244] Node <port-6666> Routing Table
 - (0.3) Node 5555; Next hop -> Node 7777
 - (0.2) Node 7777
@@ -236,7 +236,7 @@ node 6666: python dvnode.py 6666 5555 .4 7777 .2
 - (0.5) Node 3333; Next hop -> Node 7777
 - (0.7) Node 1111; Next hop -> Node 7777
 
-node 7777: python dvnode.py 7777 4444 .4 2222 .2 5555 .1 6666 .2 last
+node 7777: python3 dvnode.py 7777 4444 .4 2222 .2 5555 .1 6666 .2 last
 [1702341413.252] Node <port-7777> Routing Table
 - (0.4) Node 4444
 - (0.2) Node 2222
@@ -250,7 +250,7 @@ node 7777: python dvnode.py 7777 4444 .4 2222 .2 5555 .1 6666 .2 last
 FOR cvnode
 (1) Basic Test Case, 3 nodes -> basically converges around 1000 packets
 
-node 1111: python cnnode.py 1111 receive send 2222
+node 1111: python3 cnnode.py 1111 receive send 2222
 .
 .
 .
@@ -264,7 +264,7 @@ node 1111: python cnnode.py 1111 receive send 2222
 [1702494419.310] Link to 2222: 632 packets sent, 59 packets lost, lost rate 0.09
 [1702494420.334] Link to 2222: 648 packets sent, 65 packets lost, lost rate 0.1
 
-node 2222: python cnnode.py 2222 receive 1111 .1 send 3333 
+node 2222: python3 cnnode.py 2222 receive 1111 .1 send 3333 
 .
 .
 .
@@ -278,7 +278,7 @@ node 2222: python cnnode.py 2222 receive 1111 .1 send 3333
 [1702494420.320] Link to 3333: 560 packets sent, 116 packets lost, lost rate 0.21
 
 
-node 3333: python cnnode.py 3333 receive 2222 .2 send last
+node 3333: python3 cnnode.py 3333 receive 2222 .2 send last
 .
 .
 [1702494415.854] Node <port-3333> Routing Table
@@ -288,7 +288,7 @@ node 3333: python cnnode.py 3333 receive 2222 .2 send last
 
 (2) Given Test Case -> converges when around 2000 packets have been sent
 
-node 1111: python cnnode.py 1111 receive send 2222 3333
+node 1111: python3 cnnode.py 1111 receive send 2222 3333
 .
 .
 [1702505007.136] Node <port-1111> Routing Table
@@ -297,7 +297,7 @@ node 1111: python cnnode.py 1111 receive send 2222 3333
 - (0.8) Node 4444; Next hop -> Node 2222
 
 
-node 2222: python cnnode.py 2222 receive 1111 .1 send 3333 4444
+node 2222: python3 cnnode.py 2222 receive 1111 .1 send 3333 4444
 .
 .
 [1702505007.124] Node <port-2222> Routing Table
@@ -305,7 +305,7 @@ node 2222: python cnnode.py 2222 receive 1111 .1 send 3333 4444
 - (0.21) Node 3333
 - (0.7) Node 4444; Next hop -> Node 3333
 
-node 3333: python cnnode.py 3333 receive 1111 .5 2222 .2 send 4444
+node 3333: python3 cnnode.py 3333 receive 1111 .5 2222 .2 send 4444
 .
 .
 [1702505007.234] Node <port-3333> Routing Table
@@ -314,7 +314,7 @@ node 3333: python cnnode.py 3333 receive 1111 .5 2222 .2 send 4444
 - (0.49) Node 4444
 
 
-node 4444: python cnnode.py 4444 receive 2222 .8 3333 .5 send last
+node 4444: python3 cnnode.py 4444 receive 2222 .8 3333 .5 send last
 .
 .
 [1702505007.086] Node <port-4444> Routing Table
@@ -326,7 +326,7 @@ node 4444: python cnnode.py 4444 receive 2222 .8 3333 .5 send last
 
 (3) Basic Test Case, 4 nodes
 
-node 1111: python cnnode.py 1111 receive send 2222 3333 4444
+node 1111: python3 cnnode.py 1111 receive send 2222 3333 4444
 .
 .
 [1702507052.807] Node <port-1111> Routing Table
@@ -334,7 +334,7 @@ node 1111: python cnnode.py 1111 receive send 2222 3333 4444
 - (0.15) Node 3333
 - (0.26) Node 4444; Next hop -> Node 3333
 
-node 2222: python cnnode.py 2222 receive 1111 .4 send 3333
+node 2222: python3 cnnode.py 2222 receive 1111 .4 send 3333
 .
 .
 [1702507053.338] Node <port-2222> Routing Table
@@ -342,7 +342,7 @@ node 2222: python cnnode.py 2222 receive 1111 .4 send 3333
 - (0.09) Node 3333
 - (0.2) Node 4444; Next hop -> Node 3333
 
-node 3333: python cnnode.py 3333 receive 1111 .1 2222 .1 send 4444
+node 3333: python3 cnnode.py 3333 receive 1111 .1 2222 .1 send 4444
 .
 .
 [1702507053.282] Node <port-3333> Routing Table
@@ -350,7 +350,7 @@ node 3333: python cnnode.py 3333 receive 1111 .1 2222 .1 send 4444
 - (0.09) Node 2222
 - (0.11) Node 4444
 
-node 4444: python cnnode.py 4444 receive 1111 .3 3333 .1 send last
+node 4444: python3 cnnode.py 4444 receive 1111 .3 3333 .1 send last
 .
 .
 [1702507053.411] Node <port-4444> Routing Table
